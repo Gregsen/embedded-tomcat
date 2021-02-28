@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <!-- Maven is build around the concept of lifecycles (i.e. default, clean and site). Each lifecycle can have multiple
+    phases. The default lifecycle for example, has "validate, compile, test, package, verify, install, ..." as different
+    phases. Calling a phase (e.g. maven package) will run all the other phases, that come before (here: validate, compile, test).
+    Each phase has one or more goals that are run one after another during that phase (goals are sometimes also called mojos).
+    You can combine multiple goals into a plugin (e.g. maven-compiler-plugin) and bind that plugin to a certain phase (e.g.
+    compile). You can also call just the goal (mvn compile:compile, calling the compile goal of the compile plugin).
+    In this case, _only_ the one goal will be executed. Not the phases before. Note, that plugin goals do not need to
+    be bound to a phase. In this case, they have to be called explicitly.
+    -->
+    <groupId>org.example</groupId>
+    <artifactId>embedded-tomcat</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <!-- Avoid platform dependent build -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!--        Source code is Java 11-->
+        <maven.compiler.source>11</maven.compiler.source>
+        <!--        compiled code is Java 11-->
+        <maven.compiler.target>11</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <!-- The API, which is used to talk to the logger (i.e. LOG.debug("my message")). This dependency
+        is the minimum requirement for logging via slf4j. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.30</version>
+        </dependency>
+        <!-- the actual logger. Since this is a small project, a simple logger is used. Once could also use logback or
+        log4j. When the slf4j api is called, it will internally call this logger -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.30</version>
+        </dependency>
+        <!-- Apache Tomcat is using a different logger. Since v7, it is using java.util.logging (JUL). In order to have
+        a uniform log output, we want to make sure that tomcat is also talking to slf4j. This dependency handles it for
+        us. Note, that we also have to enable this via code (see Application.java) -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <version>1.7.30</version>
+        </dependency>
+        <!-- the actual Tomcat server. -->
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+            <version>10.0.2</version>
+        </dependency>
+    </dependencies>
+
+
+    <build>
+        <plugins>
+            <plugin>
+                <!-- Creating an uberjar. This allows to run this application via "java -jar embedded-tomcat.jar"-->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <!-- the jar that will contain all dependencies will be called "embedded-tomcat-jar-with-depdencies.jar" -->
+                    <descriptorRefs>jar-with-dependencies</descriptorRefs>
+                    <!-- In order to be an executable jar, it needs to contain a "META-INF/MANIFEST.MF" file that contains
+                    the class with the main() method. This part will generate this file, which is then assembled into
+                    a jar file.
+                    The <archive> parts are actually passed on to the maven archive plugin, so for more configuration
+                    options, one needs to check out their docs, and not the maven assembly plugin docs.
+                    -->
+                    <archive>
+                        <manifest>
+                            <mainClass>io.github.gregsen.Application</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <!-- here we define, when the plugin is supposed to run; It should run during the package phase and it
+                should run the "single" goal (the only goal for this plugin).
+                The id is just here to have a unique identifier if we wanted to merge this pom.xml with some other pom
+                (e.g. a parent pom that also has the assembly plugin defined).
+                -->
+                <executions>
+                    <execution>
+                        <id>create-fatjar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
